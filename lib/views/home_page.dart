@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:marcador_truco/models/player.dart';
 
+
+
 class HomePage extends StatefulWidget {
   @override
   _HomePageState createState() => _HomePageState();
@@ -9,12 +11,12 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   var _playerOne = Player(name: "Nós", score: 0, victories: 0);
   var _playerTwo = Player(name: "Eles", score: 0, victories: 0);
+  TextEditingController _rename = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _resetPlayers();
-    
   }
 
   void _resetPlayer({Player player, bool resetVictories = true}) {
@@ -33,7 +35,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.deepOrange,
+        backgroundColor: Colors.green,
         title: Text("Marcador Pontos (Truco!)"),
         actions: <Widget>[
           IconButton(
@@ -47,6 +49,17 @@ class _HomePageState extends State<HomePage> {
                   });
             },
             icon: Icon(Icons.refresh),
+          ),
+          IconButton(
+            onPressed: () {
+              _showDialog(
+                  title: 'Zerar',
+                  message: 'Deseja apagar o Score atua?',
+                  confirm: () {
+                    _resetPlayers(resetVictories: false);
+                  });
+            },
+            icon: Icon(Icons.restore),
           )
         ],
       ),
@@ -61,7 +74,7 @@ class _HomePageState extends State<HomePage> {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
-          _showPlayerName(player.name),
+          _showPlayerName(player),
           _showPlayerScore(player.score),
           _showPlayerVictories(player.victories),
           _showScoreButtons(player),
@@ -82,13 +95,45 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _showPlayerName(String name) {
-    return Text(
-      name.toUpperCase(),
-      style: TextStyle(
-          fontSize: 22.0,
-          fontWeight: FontWeight.w500,
-          color: Colors.deepOrange),
+  Widget _showPlayerName(Player player) {
+    return GestureDetector(
+      onTap: () {
+        return showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) {
+              return AlertDialog(
+                title: Text("Nome do jogador :"),
+                content: TextField(
+                  controller: _rename,
+                  decoration: InputDecoration(hintText: "digite um novo nome"),
+                ),
+                actions: <Widget>[
+                  new FlatButton(
+                    child: new Text('Cancelar'),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                  FlatButton(
+                    child: new Text('Confirmar'),
+                    onPressed: () {
+                      setState(() {
+                        player.name = _rename.text;
+                      });
+                      _rename.clear();
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                ],
+              );
+            });
+      },
+      child: Text(
+        player.name.toUpperCase(),
+        style: TextStyle(
+            fontSize: 22.0, fontWeight: FontWeight.w500, color: Colors.green),
+      ),
     );
   }
 
@@ -140,15 +185,28 @@ class _HomePageState extends State<HomePage> {
             setState(() {
               player.score--;
             });
+
+            if (player.score < 0) {
+              setState(() {
+                player.score = 0;
+              });
+            }
           },
         ),
         _buildRoundedButton(
           text: '+1',
-          color: Colors.deepOrangeAccent,
+          color: Colors.green,
           onTap: () {
             setState(() {
               player.score++;
             });
+
+            if (_playerOne.score == 11 && _playerTwo.score == 11) {
+              _showHand(
+                title: "Mão de Onze especial",
+                message: "Cartas cobertas, quem vencer essa rodada vencerá a partida!!",
+              );
+            }
 
             if (player.score == 12) {
               _showDialog(
@@ -158,6 +216,12 @@ class _HomePageState extends State<HomePage> {
                     setState(() {
                       player.victories++;
                     });
+
+                    if (player.score == 12) {
+                      setState(() {
+                        player.score = 0;
+                      });
+                    }
 
                     _resetPlayers(resetVictories: false);
                   },
@@ -173,9 +237,31 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  void _showHand({String title, String message}) {
+    showDialog(
+      barrierDismissible: false,
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: <Widget>[
+            FlatButton(
+              child: Text("OK"),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _showDialog(
       {String title, String message, Function confirm, Function cancel}) {
     showDialog(
+      barrierDismissible: false,
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
